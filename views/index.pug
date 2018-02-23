@@ -1,0 +1,62 @@
+extends ../node_modules/pug-bootstrap/layouts/starter
+
+block body
+  script(src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.js")
+  script
+    include piechart.js
+
+  +navbar-fixed("chesstat","navbar","inverse")
+    +nav_item("#","active") Home
+    +nav_item("#") About
+    +nav_item("#") Contact
+  .container
+    .starter-template
+      h1 Statistics from Chess.com
+      p.lead
+        | Custom Analytics
+        br
+        | The way you want it!
+
+  .container
+    - title = "Search";
+    h1= title
+
+    form
+      .form-group
+        label(for="exampleInputEmail1") Email
+        input(type="email" class="form-control" id="exampleInputEmail1" placeholder="Enter email")
+      button(type="submit" class="btn btn-primary") Submit
+
+    p
+
+      +alert-info("Statistics of games played between date 1 and date 2.")
+
+    .container
+      .row
+        .col
+          p This chart shows the distribution of wins by color. 
+        .col
+          canvas(id="chartPic1" width="200" height="200")
+          script.
+            makeChart("chartPic1");
+        .col
+          .container
+            canvas(id="chartPic2" width="200" height="200")
+            script.
+              makeChart("chartPic2");
+
+
+  +navbar("Project name","dropdown_menu")
+    +nav_item("index.html","active") Home
+    +nav_item("about.html") About
+    +nav_item("contact.html") Contact
+    +nav_item_dropdown("#")(label="Dropdown")
+      +nav_item("#") Action
+      +nav_item("#") Another Action
+      +nav_item("#") Something else here
+      +nav_divider
+      +nav_header Nav header
+      +nav_item("#") Separated link
+      +nav_item("#") One more separated link
+  h1 Pawan
+  
