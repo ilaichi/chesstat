@@ -2,8 +2,6 @@ extends ../node_modules/pug-bootstrap/layouts/starter
 
 block body
   script(src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.js")
-  script
-    include piechart.js
 
   +navbar-fixed("chesstat","navbar","inverse")
     +nav_item("#","active") Home
@@ -11,39 +9,134 @@ block body
     +nav_item("#") Contact
   .container
     .starter-template
-      h1 Statistics from Chess.com
+      h1= title 
       p.lead
-        | Custom Analytics
+        | Statistics from Chess.com
         br
         | The way you want it!
 
   .container
-    - title = "Search";
-    h1= title
+    h1 Search
 
-    form
+    form(action="/stats" method="get")
       .form-group
-        label(for="exampleInputEmail1") Email
-        input(type="email" class="form-control" id="exampleInputEmail1" placeholder="Enter email")
+        label(for="userid") User ID
+        input(type="text" class="form-control" name="userid" id="userid" placeholder="Enter User ID" value=player)
+        label(for="refresh") Refresh
+        input(type="checkbox" class="form-check-input" id="refresh" name="refresh" value="true")
       button(type="submit" class="btn btn-primary") Submit
 
     p
 
-      +alert-info("Statistics of games played between date 1 and date 2.")
+      +alert-info("Statistics of games played by " + player + " between date 1 and date 2.")
 
     .container
       .row
         .col
-          p This chart shows the distribution of wins by color. 
+          canvas(id="chartPic0" width="200" height="200")
+          script.
+            var ctx = document.getElementById("chartPic0").getContext('2d');
+            var chart = new Chart(ctx, {
+                          type: 'pie',
+                          data: {
+                            labels: ["Win", "Loss", "Draw"],
+                            datasets: [{
+                              label: 'Result',
+                              data: [!{stats.wins.total}, !{stats.losses.total}, !{stats.draws.total}],
+                              backgroundColor: ['green', 'red', 'yellow'],
+                              borderColor: ['red', 'yellow', 'green'],
+                              borderWidth: 1
+                              }]
+                          },
+                          options: {
+                            responsive: false,
+                            title: {
+                              display: true,
+                              text: "Performance"
+                            },
+                            legend: {
+                              position: 'bottom'
+                            },
+                            layout: {
+                              padding: {
+                                left: 10,
+                                right: 0,
+                                top: 0,
+                                bottom: 0
+                              }
+                          }
+                        }
+                      });
         .col
           canvas(id="chartPic1" width="200" height="200")
           script.
-            makeChart("chartPic1");
+            var ctx = document.getElementById("chartPic1").getContext('2d');
+            var chart = new Chart(ctx, {
+                          type: 'pie',
+                          data: {
+                            labels: ["white", "black"],
+                            datasets: [{
+                              label: 'Color',
+                              data: [!{stats.wins.white}, !{stats.wins.black}],
+                              backgroundColor: ['gray', 'black'],
+                              borderColor: ['black', 'gray'],
+                              borderWidth: 1
+                              }]
+                          },
+                          options: {
+                            responsive: false,
+                            title: {
+                              display: true,
+                              text: "Wins Distribution"
+                            },
+                            legend: {
+                              position: 'bottom'
+                            },
+                            layout: {
+                              padding: {
+                                left: 10,
+                                right: 0,
+                                top: 0,
+                                bottom: 0
+                              }
+                          }
+                        }
+                      });
         .col
-          .container
-            canvas(id="chartPic2" width="200" height="200")
-            script.
-              makeChart("chartPic2");
+          canvas(id="chartPic2" width="200" height="200")
+          script.
+            var ctx = document.getElementById("chartPic2").getContext('2d');
+            var chart = new Chart(ctx, {
+                          type: 'pie',
+                          data: {
+                            labels: ["white", "black"],
+                            datasets: [{
+                              label: 'Color',
+                              data: [!{stats.losses.white}, !{stats.losses.black}],
+                              backgroundColor: ['gray', 'black'],
+                              borderColor: ['black', 'gray'],
+                              borderWidth: 1
+                              }]
+                          },
+                          options: {
+                            responsive: false,
+                            title: {
+                              display: true,
+                              text: "Losses Distribution"
+                            },
+                            legend: {
+                              position: 'bottom'
+                            },
+                            layout: {
+                              padding: {
+                                left: 10,
+                                right: 0,
+                                top: 0,
+                                bottom: 0
+                              }
+                          }
+                        }
+                      });
 
 
   +navbar("Project name","dropdown_menu")

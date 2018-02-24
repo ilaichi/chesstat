@@ -1,4 +1,4 @@
-function makeChart(canvasId) {
+function makeChart(canvasId, title, stats) {
     var ctx = document.getElementById(canvasId).getContext('2d');
     var chart = new Chart(ctx, {
         type: 'pie',
@@ -6,7 +6,7 @@ function makeChart(canvasId) {
             labels: ["white", "black"],
             datasets: [{
                 label: 'Color',
-                data: [67,33],
+                data: [stats.white, stats.black],
                 backgroundColor: ['gray', 'black'],
                 borderColor: ['black', 'gray'],
                 borderWidth: 1
@@ -16,7 +16,7 @@ function makeChart(canvasId) {
             responsive: false,
             title: {
                 display: true,
-                text: "Win Percentage"
+                text: title
             },
             legend: {
                 position: 'bottom'
