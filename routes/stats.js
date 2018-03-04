@@ -1,11 +1,14 @@
+var arangojs = require('arangojs');
 var express = require('express');
 var router = express.Router();
+var log = require('loglevel');
+var urlUtil = require('url');
 
 
 /* GET stats */
 router.get('/', function(req, res, next) {
 
-    var reqUrl = require('url').parse(req.url, true);
+    var reqUrl = urlUtil.parse(req.url, true);
     console.log(reqUrl);
 
     var player = reqUrl.query.userid;
@@ -54,6 +57,7 @@ function parsePgn(pgn) {
 }
 
 function saveGames(player, gameData) {
+    log.warn('---------- In saveGames');
     var file = player + '.json';
 
     var wrapper = {};
@@ -62,6 +66,23 @@ function saveGames(player, gameData) {
     jsonfile.writeFile(file, wrapper, {spaces: 2}, function(err) {
         console.error(err);
     }); 
+}
+
+function getDB() {
+    var db = new arangojs.Database({url: "http://localhost:8529"});
+    db.useDatabase("_system");
+    db.useBasicAuth("root", "");
+    return db;
+}
+
+function saveGamesToDB(player, gameData) {
+    log.warn('---------- In saveGamesToDB');
+    var db = getDB();
+    var coll = db.collection('tgames');
+    coll.import(gameData).then(
+        result => console.log('Import complete:', result),
+        err => console.error('Import failed:', err)
+    );
 }
 
 function fetchMonthly(player, url) {
@@ -112,8 +133,15 @@ function fetchMonthly(player, url) {
                         gameRec.game.result = 'loss';
                         gameRec.game.resultmode = playerObj.result;
                     }
+                    gameRec.game.player = player;
                     gameRec.game.opponent = opponentObj.username;
+                    gameRec.game.source = 'chess.com';
 
+                    var gameUrl = urlUtil.parse(v.url, true);
+                    var pathParts = gameUrl.path.split('/');
+                    gameRec._key = 'chess.com' + '-' + pathParts[1]
+                        + '-' + pathParts[3];
+                    
                     data.push(gameRec);
 
                     console.log('gameRec: ' + JSON.stringify(gameRec));
@@ -123,6 +151,7 @@ function fetchMonthly(player, url) {
         });
 
         console.log('data: ' + JSON.stringify(data));
+        saveGamesToDB(player, data);
         saveGames(player, data);
     });
 }
@@ -252,6 +281,107 @@ function computeStats(player) {
     };
 }
 
+function getCount(player, result, color) {
+    
+    var db = getDB();
+    db.query("return length("
+             + "for tgame in tgames "
+             + " filter tgame.game.player == @player "
+             + "  && tgame.game.result == @result "
+             + "  && tgame.game.color == @color "
+             + " return tgame)",
+             {player: player,
+              result: result,
+              color: color}
+    ).then(function (cursor) {
+        return cursor.next().then(function (result) {
+            console.log('Got COUNT from DB: ' + result);
+        });
+    }).catch(function (err) {
+        console.error('DB error: ' + err);
+    });
+    
+}
+function computeStatsFromDB(player) {
+ 
+    var gd = jsonQ(wrapper);
+    var games = gd.find('game');
+    var nGames = games.value().length;
+
+    var wins = games.filter({
+        'result':'win'
+    });
+    var nWins = wins.value().length;
+
+    var whiteWins = wins.filter({
+        'color': 'w'
+    });
+    var nWhiteWins = whiteWins.value().length;
+
+    var nBlackWins = nWins - nWhiteWins; 
+
+    console.log('Wins: ' + JSON.stringify(wins.value()));
+    console.log('Total: ' + nGames
+                + ', Wins: ' + nWins + '(' + perc(nWins, nGames) + '%) - '
+                + ' White: ' + nWhiteWins + '(' + perc(nWhiteWins, nWins) + '%)'
+                + ', Black: ' + nBlackWins + '(' + perc(nBlackWins, nWins) + '%)');
+
+    var losses = games.filter({
+        'result':'loss'
+    });
+    var nLosses = losses.value().length;
+
+    var whiteLosses = losses.filter({
+        'color': 'w'
+    });
+    var nWhiteLosses = whiteLosses.value().length;
+
+    var nBlackLosses = nLosses - nWhiteLosses; 
+
+    console.log('Losses: ' + JSON.stringify(losses.value()));
+    console.log('Total: ' + nGames
+                + ', Losses: ' + nLosses + '(' + perc(nLosses, nGames) + '%) - '
+                + ' White: ' + nWhiteLosses + '(' + perc(nWhiteLosses, nLosses) + '%)'
+                + ', Black: ' + nBlackLosses + '(' + perc(nBlackLosses, nLosses) + '%)');
+
+    var draws = games.filter({
+        'result':'draw'
+    });
+    var nDraws = draws.value().length;
+
+    var whiteDraws = draws.filter({
+        'color': 'w'
+    });
+    var nWhiteDraws = whiteDraws.value().length;
+
+    var nBlackDraws = nDraws - nWhiteDraws; 
+
+    console.log('Draws: ' + JSON.stringify(draws.value()));
+    console.log('Total: ' + nGames
+                + ', Draws: ' + nDraws + '(' + perc(nDraws, nGames) + '%) - '
+                + ' White: ' + nWhiteDraws + '(' + perc(nWhiteDraws, nDraws) + '%)'
+                + ', Black: ' + nBlackDraws + '(' + perc(nBlackDraws, nDraws) + '%)');
+
+
+    return {
+        player: player,
+        wins: {
+            total: nWins,
+            white: nWhiteWins,
+            black: nBlackWins
+        },
+        losses: {
+            total: nLosses,
+            white: nWhiteLosses,
+            black: nBlackLosses
+        },
+        draws: {
+            total: nDraws,
+            white: nWhiteDraws,
+            black: nBlackDraws
+        }
+    };
+}
 
 
 
